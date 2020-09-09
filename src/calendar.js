@@ -15,17 +15,20 @@ const calendar = google.calendar({
     auth: oAuth2Client
 })
 
-function getEvent() {
-    calendar.events.list({
-        calendarId: process.env.GARBAGE_CALENDAR_ID,
-        timeMin: (new Date()).toISOString(),
-        maxResults: 1,
-        singleEvents: true,
-        orderBy: 'startTime',
-    }, (err, res) => {
-        if (err) return console.log('The API returned an error: ' + err)
-        return res.data.items[0]
-    })
+async function getNextEvent() {
+    try {
+        const event = await calendar.events.list({
+            calendarId: process.env.GARBAGE_CALENDAR_ID,
+            timeMin: (new Date()).toISOString(),
+            maxResults: 1,
+            singleEvents: true,
+            orderBy: 'startTime',
+        })
+        return event.data.items[0]
+    }
+    catch (e) {
+        console.log("Error getting event", e)
+    }
 }
 
-module.exports.getEvent = getEvent
+module.exports.getNextEvent = getNextEvent

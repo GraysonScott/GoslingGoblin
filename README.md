@@ -1,0 +1,1 @@
+Discord bot to notify a server the night before garbage collection.

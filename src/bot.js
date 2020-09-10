@@ -1,3 +1,4 @@
+const moment = require('moment')
 require('dotenv').config()
 const { Client } = require('discord.js')
 const client = new Client()
@@ -5,48 +6,70 @@ const calendar = require('./calendar')
 
 client.once('ready', () => {
     console.log(`${client.user.tag} has logged in.`)
-    sendMessage()
+    sayHello()
+    waitUntilTime(21)
 })
 
-client.login(process.env.DISCORD_BOT_TOKEN)
-
-async function sendMessage() {
+async function sayHello() {
     try {
         const channel = await client.channels.cache.get(process.env.CHANNEL_ID)
-        // console.log(channel)
-        const event = await calendar.getNextEvent()
-        if (!event) return channel.send("No event found").catch((e) => {
-            console.log("Unable to send message")
-        })
-        console.log(event)
-        console.log(event.start.date)
-        if (checkTomorrow(event.start.date)) {
-            await channel.send(`Garbage day is tomorrow! This week is ${event.summary.toLowerCase()}.`)
-        }
-        //await channel.send(event.summary)
+        await channel.send("Hello")
     }
     catch (err) {
         console.log(err)
     }
 }
 
-// Takes the date from the calendar event, splits it into year/month/day, turns it into a Date object, then compares to the current date.
-// Returns true if the date is tomorrow or false if it's not.
+// Gets the next event in the calendar and then sends the message if garbage day is tomorrow.
+async function sendMessage() {
+    try {
+        const channel = await client.channels.cache.get(process.env.CHANNEL_ID)
+        const event = await calendar.getNextEvent()
+        if (!event) return channel.send("No event found").catch((e) => {
+            console.log("Unable to send message", e)
+        })
+
+        if (checkTomorrow(event.start.date)) {
+            await channel.send(`Garbage day is tomorrow! This week is ${event.summary.toLowerCase()}.`)
+        }
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+// Takes the date from the calendar event then compares to the current date plus one day.
+// Returns true if the dates match or false if they don't.
 function checkTomorrow(event) {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const eventArray = event.split('-')
-    const eventDate = new Date(eventArray[0], eventArray[1] - 1, eventArray[2])
+    const tomorrow = moment()
+    tomorrow.add(1, 'days')
+    const eventDate = moment(event, 'YYYY-MM-DD')
 
-    console.log(tomorrow)
-    console.log(eventDate)
-
-
-    if (tomorrow.getFullYear() == eventDate.getFullYear() && tomorrow.getMonth() == eventDate.getMonth() &&
-        tomorrow.getDate() == eventDate.getDate()) {
-        console.log("Matching Date")
-        console.log(tomorrow, eventDate)
+    if (tomorrow.isSame(eventDate, 'days')) {
         return true
     }
+
     return false
 }
+
+// Compares the current time to the desired time and sets a timeout until that time is reached.
+// At the desired time, calls sendMessage and then sets an interval to call it at the same time every day.
+function waitUntilTime(time) {
+    const now = moment()
+    const target = moment(`${now.year()}-${now.month() + 1}-${now.date()} ${time}:${00}`, 'YYYY-MM-DD HH:mm')
+    let milliSecTillTime = target.diff(now)
+
+    if (milliSecTillTime < 0) {
+        milliSecTillTime += 86400000
+    }
+
+    setTimeout(() => {
+        sendMessage()
+        setInterval(() => {
+            sendMessage()
+        }, 24 * 60 * 60 * 1000)
+    }, milliSecTillTime)
+}
+
+client.login(process.env.DISCORD_BOT_TOKEN)
+

@@ -15,6 +15,7 @@
     "discord.js": "^12.3.1",
     "dotenv": "^8.2.0",
     "googleapis": "^39.2.0",
+    "moment": "^2.27.0",
     "nodemon": "^2.0.4"
   }
 }
